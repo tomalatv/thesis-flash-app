@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" 
+		   layout="absolute" width="580" height="360"
+		   maximizable="false" horizontalScrollPolicy="off" 
+		   verticalScrollPolicy="off" initialize="initBrowser()">
+<mx:Script>
+<![CDATA[
+	import flash.filesystem.File;
+	
+	import mx.events.FileEvent;
+	import mx.events.FlexEvent;
+	
+	private var images:Array = new Array();			
+	
+	private function initBrowser():void{
+		viewFiles.addEventListener(FileEvent.DIRECTORY_OPENING,
+			changeDirectory);
+		viewFiles.allowMultipleSelection = true;
+	}
+	
+	private function changeDirectory(event:FileEvent):void{	
+		viewFiles.directory = event.file;		
+	}
+	
+	private function setSelectedImages():void{
+		images = viewFiles.selectedPaths;
+		setVisible(false);
+	}
+
+	public function getSelectedImages():Array{
+		return images;
+	}
+				
+]]>
+</mx:Script>
+
+<mx:Button x="179" y="310" label="Cancel" width="167" 
+		   click="setVisible(false)" id="closeFilesBrowser"/>
+<mx:Button x="358" y="310" label="Open" width="204" id="openFiles"
+		   click="setSelectedImages()"/>	
+<mx:FileSystemList x="10" y="25" width="552" height="258" 
+			id="viewFiles" />
+<mx:FileSystemHistoryButton x="10" y="310" width="146" label="Back" 
+			id="navicationHistory" 
+			enabled="{viewFiles.canNavigateBack}"
+			dataProvider="{viewFiles.backHistory}"
+			click="viewFiles.navigateBack();"
+			itemClick="viewFiles.navigateBack(event.index);"/>
+</mx:Window>

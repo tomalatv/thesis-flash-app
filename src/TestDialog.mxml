@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+		   width="180" height="281" verticalScrollPolicy="off" 
+		   horizontalScrollPolicy="off">
+<mx:Script>
+<![CDATA[
+	import flash.utils.getTimer;
+	
+	import mx.events.AIREvent;
+	import mx.events.FileEvent;
+	import mx.events.FlexEvent;
+	
+	import org.osmf.events.TimeEvent;
+	
+	private var mxff:MultimediaXFlashFlex2;
+	private var testTimer:Timer;
+	private var aika:Number=0;
+	private	var time:Number = getTimer();
+	private var toista:int;
+	private var saveFile:File;
+	private var fileToOperate:File;
+	private var fileStream:FileStream;
+	private var fileToOperateExist:Boolean = false;	
+	private var aloitusAika:String;
+	private var lopetusAika:String;
+	private var soundTimer:Timer;
+	private var musToisto:int = 0;
+	
+	public function init(parent:MultimediaXFlashFlex2):void{
+		mxff = parent;
+		soundTimer = new Timer(0);
+		soundTimer.addEventListener(TimerEvent.TIMER, soundDelayListener);
+	}
+
+	private function testiTulos(aika:int, aloitusAika:String, 
+								lopetusAika:String):void{
+		var aikaSekuntteina:Number;
+		var tulokset:String; 
+		
+		aikaSekuntteina = aika /1000;
+		
+		testiTulokset.text = testiNro.selectedLabel 
+			+ ": " + testiNro.selectedIndex
+			+ "\nAika: " + aikaSekuntteina +" s"
+			+ "\nAika: " + aika +" ms"
+			+ "\nToisto kerrat: " + toistot.text;					
+
+		if(fileToOperateExist){
+			tulokset = aloitusAika
+				+ ";" + lopetusAika
+				+ ";" + testiNro.selectedIndex
+				+ ";" + aikaSekuntteina 
+				+ ";" + aika
+				+ ";" + toistot.text + "\n";
+			
+			fileStream.open(fileToOperate, FileMode.APPEND);
+			fileStream.writeUTF(tulokset);
+			fileStream.close();
+		}
+		
+	}
+	
+	private function selectFileToSave():void{
+		saveFile = new File();
+		saveFile.browseForSave("Save test result to file");				
+		saveFile.addEventListener(Event.SELECT, createFile);
+	}
+	
+	private function createFile(event:Event):void{
+		fileToOperate = saveFile.resolvePath(saveFile.nativePath+".txt");
+		fileStream = new FileStream();
+		fileStream.open(fileToOperate, FileMode.WRITE);
+		fileStream.writeUTF("Aloitus aika | Lopetus aika | " +
+			"Testi nro | Aika s. | Aika ms. | toistot \n");
+		fileStream.close();
+		fileToOperateExist = true;
+	}
+	
+	private function soundDelayListener(event:TimerEvent):void{
+		if(mxff.channel.position !=0){
+			mxff.stopSong();
+			aika += getTimer() - time;
+			soundTimer.stop();			
+			musToisto++;
+			if(musToisto!=toista){
+				testSound();
+			}else{
+				lopetusAika = new Date().toLocaleTimeString();
+				testiTulos(aika, aloitusAika, lopetusAika);
+				mxff.setTestaus(false);
+			}
+		}
+	}
+	
+	private function testSound():void{
+		time = getTimer();
+		mxff.playSong();
+		soundTimer.start();
+	}
+	private function runTest():void{
+		toista =  parseInt(toistot.text);
+		mxff.setTestaus(true);
+		aika = 0;
+		
+		aloitusAika = new Date().toLocaleTimeString();
+		switch(testiNro.selectedIndex){
+			
+			case 0:
+				time = getTimer();
+				for(var i:int = 0; i<toista ;i++){
+					mxff.selectImages();
+					mxff.selectFilesBrowser.setVisible(false);
+					}
+				aika = getTimer() - time;
+				lopetusAika = new Date().toLocaleTimeString();
+				testiTulos(aika, aloitusAika, lopetusAika);
+				mxff.setTestaus(false);
+				break;
+			
+			case 1:
+				testTimer = new Timer(50,toista);
+				testTimer.addEventListener(TimerEvent.TIMER, nayta);
+				testTimer.addEventListener(TimerEvent.TIMER_COMPLETE,
+					valmis);
+				aloitusAika = new Date().toLocaleTimeString();
+				testTimer.start();
+				break;
+			
+			case 2:
+				musToisto =0;
+				testSound();
+				break;
+			
+		}		
+	}
+	
+	private function nayta(event:TimerEvent):void{
+		time = getTimer();
+		mxff.viewImage();
+		aika += getTimer() - time;	
+	}
+	
+	private function valmis(event:TimerEvent):void{
+		lopetusAika = new Date().toLocaleTimeString();
+		testiTulos(aika, aloitusAika, lopetusAika);
+		mxff.setTestaus(false);
+	}
+]]>
+</mx:Script>
+
+<mx:ComboBox x="10" y="10" id="testiNro">
+	<mx:ArrayCollection>
+		<mx:Object label="Avaa tiedostoikkuna"/>
+		<mx:Object label="Avaa kuva"/>	
+		<mx:Object label="Musiikin toisto"/>
+	</mx:ArrayCollection>
+</mx:ComboBox>
+<mx:TextInput x="10" y="40" id="toistot"/>
+<mx:TextArea x="10" y="70" height="97" id="testiTulokset"/>
+<mx:Button x="10" y="175" label="Cancel" click="close()"/>
+<mx:Button x="83" y="175" label="Run Test" click="runTest()"/>
+<mx:Button x="12" y="218" label="Save test result to file" 
+		   id="saveTestResult" click="selectFileToSave()"/>
+</mx:Window>
